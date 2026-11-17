@@ -221,3 +221,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Proyecto compras-publicas-chile ---
+# Datos: no se versionan (pesados y con condiciones de uso propias)
+data/*
+!data/README.md
+# Base de datos DuckDB local
+*.duckdb
+*.duckdb.wal
