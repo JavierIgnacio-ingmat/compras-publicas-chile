@@ -138,7 +138,9 @@ Supuesto declarado: que el precio de referencia era alcanzable para todos los co
 
 ### D9. Regla de modalidad
 
-Se aplica en orden; cada ítem toma la primera fila que cumple. Las columnas están descritas en
+Se aplica en orden; cada ítem toma la primera fila que cumple. Las comparaciones son por valor exacto:
+por ejemplo, `licitación pública previa sin ofertas, o con ofertas inadmisibles` es una causal de
+trato directo, no una licitación. Las columnas están descritas en
 [`docs/diccionario-oc.md`](docs/diccionario-oc.md). Los conteos son de enero de 2025, antes de filtrar estados.
 
 | Orden | Condición | Modalidad | Ítems |
@@ -147,7 +149,10 @@ Se aplica en orden; cada ítem toma la primera fila que cumple. Las columnas est
 | 2 | `Tipo` = `AG` | Compra ágil | 122.329 |
 | 3 | `Tipo` = `CM`, o `ProcedenciaOC` = `Proveniente de convenio marco` | Convenio marco | 62.164 |
 | 4 | `Tipo` = `TD` o `CT`, o `EsTratoDirecto` = `Si` | Trato directo | 21.449 |
-| 5 | Todo lo demás (`SE` de licitación pública o privada y `CC`) | Licitación | 148.929 |
+| 5 | `ProcedenciaOC` = `Proveniente de licitación pública` o `Proveniente de licitación privada` | Licitación | 148.929 |
+
+Si un ítem no cumple ninguna regla, la limpieza se detiene con un error, igual que la lista blanca
+de D10. En enero de 2025 todos los ítems cumplen alguna.
 
 `Tipo` no basta por sí solo porque `SE` mezcla licitaciones, tratos directos y otros casos;
 `EsTratoDirecto` y `ProcedenciaOC` los separan. Resultado para cada caso:
@@ -169,6 +174,9 @@ Se aplica en orden; cada ítem toma la primera fila que cumple. Las columnas est
 
 Si los ítems "Otra" entran o no a la regresión se decide en T9.
 
+El test de T5 debe verificar que ninguna compra ágil (`Tipo` = `AG` o `EsCompraAgil` = `Si`) quede
+en "Otra" por la regla 1. En enero de 2025 no hay ninguna.
+
 ### D10. Estados incluidos
 
 Solo `Aceptada` y `Recepcion Conforme`: son órdenes que el proveedor aceptó, con precio confirmado.
@@ -184,7 +192,7 @@ En enero de 2025 quedan fuera 3.249 ítems (0,9 %): `Enviada a proveedor` 2.695,
 | T2 | Entorno: dependencias y estructura de carpetas del código | — |
 | T3 | Ingesta: script de descarga y carga cruda en DuckDB | T1, D1 |
 | T4 | Modelo estrella en SQL | T3 |
-| T5 | Limpieza con tests | T4, D5, D7, D8 |
+| T5 | Limpieza con tests | T4, D5, D7, D8, D9, D10 |
 | T6 | Exploración de productos candidatos | T5 |
 | T7 | Clasificación de la canasta y validación manual | T6, D2 |
 | T8 | Análisis descriptivo | T7 |
@@ -206,6 +214,6 @@ En enero de 2025 quedan fuera 3.249 ítems (0,9 %): `Enviada a proveedor` 2.695,
 
 - **Precio distinto no significa irregularidad.** Puede reflejar despacho a zonas remotas, urgencia,
   calidad o cantidades mínimas.
-- Sin unidad de medida, parte de la dispersión puede ser error de clasificación. La validación manual lo acota.
+- Sin una unidad de medida confiable, parte de la dispersión puede ser error de clasificación. La validación manual lo acota.
 - El ahorro potencial es un contrafactual que asume que el precio de referencia era alcanzable.
 - La regresión muestra asociaciones, no efectos causales.
