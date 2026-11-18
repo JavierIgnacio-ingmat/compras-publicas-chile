@@ -119,6 +119,7 @@ Supuesto declarado: que el precio de referencia era alcanzable para todos los co
 | statsmodels | Regresión |
 | matplotlib | Gráficos |
 | pytest | Tests de calidad de datos y de funciones |
+| uv | Entorno de Python y dependencias con versiones fijas (`uv.lock`) |
 | Git / GitHub | Versionado con un PR por tarea |
 
 ## 7. Decisiones
@@ -130,7 +131,7 @@ Supuesto declarado: que el precio de referencia era alcanzable para todos los co
 | D3 | Precio de referencia para el ahorro | Mediana / P25 / precio de convenio marco | Reportar mediana y P25 como rango | `PENDIENTE` |
 | D4 | Nivel de detalle de los resultados publicados | Por tipo de organismo y región / por organismo individual | Por tipo de organismo y región, para no exponer a nadie sin pruebas suficientes | `PENDIENTE` |
 | D5 | Incluir la compra ágil | Sí / No | Sí: es una modalidad más y puede explicar precios | `PENDIENTE` |
-| D6 | Idioma del código | Inglés / español | Nombres de código en inglés y documentación en español | `PENDIENTE` |
+| D6 | Idioma del código | Inglés / español | Nombres de código en inglés y documentación en español | `DECIDIDA`: español, en código y documentación |
 | D7 | Ítems en UF o dólares | Convertir a pesos con datos del Banco Central / excluirlos | Excluirlos si son menos del 1 % de los ítems de la canasta; verificarlo primero | `PENDIENTE` |
 | D8 | Precio con o sin impuestos | Neto / con IVA | Neto: evita diferencias por régimen tributario | `PENDIENTE` |
 | D9 | Cómo derivar la modalidad de compra | `Tipo` tal cual / 4 modalidades + otra / 4 modalidades con compra coordinada aparte | 4 modalidades + otra | `DECIDIDA`: 4 modalidades + otra (regla abajo) |

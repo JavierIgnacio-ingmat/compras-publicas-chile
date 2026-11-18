@@ -39,6 +39,12 @@ La especificación completa está en [`SPEC.md`](SPEC.md). Léela antes de propo
 
 - Javier trabaja en **Windows**. Usa `pathlib` para las rutas y evita comandos que solo existan
   en bash. Si das un comando de terminal, que funcione en PowerShell.
+- Entorno con `uv`: `uv sync` instala las versiones exactas de `uv.lock` y `uv run <comando>` ejecuta
+  dentro del entorno (por ejemplo, `uv run pytest`). Las dependencias se agregan con `uv add`, no con
+  `pip install`.
+- Nombres de código en español (decisión D6): módulos, funciones, variables y tablas SQL. Van sin
+  tildes ni ñ (por ejemplo, `anio`, `categoria`, `region`). Las columnas crudas de la fuente
+  conservan su nombre original.
 - Base de datos analítica: DuckDB, en un archivo local excluido de git.
 - Los datos crudos son pesados (varios GB). No los cargues completos en pandas: procesa con
   DuckDB y trae a Python solo resultados agregados o muestras.
