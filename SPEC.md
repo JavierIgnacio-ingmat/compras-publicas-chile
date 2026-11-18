@@ -18,6 +18,7 @@ cuántas unidades, a qué precio y por qué modalidad. Las modalidades principal
 | Convenio marco | Catálogo con precios negociados de antemano por ChileCompra |
 | Trato directo | Compra a un proveedor sin concurso; es una excepción que debe justificarse |
 | Compra ágil | Procedimiento simplificado para montos pequeños |
+| Compra coordinada | Varios organismos compran en conjunto para obtener mejores condiciones |
 
 ChileCompra publica estas órdenes como datos abiertos.
 
@@ -62,9 +63,19 @@ homogéneos, identificar los factores asociados a precios más altos y estimar e
 
 Fuente, formato esperado e instrucciones de descarga en [`data/README.md`](data/README.md).
 
-**Problema central:** los datos no traen un campo de **unidad de medida**. Una orden puede registrar
-"1 resma" y otra "1 caja de 10 resmas" bajo el mismo código de producto. Por eso el análisis se
-restringe a productos donde la unidad puede determinarse con confianza (etapa 4).
+**Problema central:** los datos traen una columna `UnidadMedida`, pero **no sirve para comparar
+precios**: en enero de 2025, la mitad de los ítems dice `Unidad`, el 14 % dice `Unidad no definida`
+y en convenio marco viene siempre vacía. Una orden puede registrar "1 resma" y otra "1 caja de
+10 resmas" bajo el mismo código de producto. Por eso el análisis se restringe a productos donde la
+unidad puede determinarse con confianza a partir del código de producto y del texto de la
+descripción (etapa 4).
+
+En convenio marco, que es una modalidad clave para la comparación, también vienen vacíos la
+categoría y los rubros: ahí la canasta se identifica solo con `codigoProductoONU` y el texto de
+`EspecificacionComprador`.
+
+El formato de los datos y el diccionario de columnas están en [`data/README.md`](data/README.md)
+y [`docs/diccionario-oc.md`](docs/diccionario-oc.md).
 
 ## 5. Metodología
 
@@ -75,7 +86,8 @@ restringe a productos donde la unidad puede determinarse con confianza (etapa 4)
 - Dimensiones: `dim_organismo`, `dim_proveedor`, `dim_producto`, `dim_modalidad`, `dim_fecha`.
 
 **Etapa 3. Limpieza.** Reglas documentadas y con tests:
-- Excluir órdenes en estado anulado, rechazado o equivalente (los estados exactos se ven en los datos).
+- Derivar la modalidad de compra según D9.
+- Excluir del análisis de precios las órdenes según D10, sin borrarlas de la tabla cruda.
 - Eliminar duplicados.
 - Tratar la moneda según D7.
 - Detectar precios unitarios imposibles (por ejemplo, el total anotado como precio unitario) y
@@ -116,7 +128,7 @@ Supuesto declarado: que el precio de referencia era alcanzable para todos los co
 
 | ID | Decisión | Opciones | Recomendación de Claude | Estado |
 |---|---|---|---|---|
-| D1 | Año a analizar | 2025 (último completo) / 2024 / varios años | 2025: un año basta y mantiene el volumen manejable | `PENDIENTE` |
+| D1 | Año a analizar | 2025 (último completo) / 2024 / varios años | 2025: un año basta y mantiene el volumen manejable | **Decidido (2026-11-18): 2025** |
 | D2 | Productos de la canasta | Se eligen después de explorar los datos (tarea T6) | Productos estandarizados y comprados por muchos organismos, como resma de papel carta o medicamentos con dosis definida | `PENDIENTE` |
 | D3 | Precio de referencia para el ahorro | Mediana / P25 / precio de convenio marco | Reportar mediana y P25 como rango | `PENDIENTE` |
 | D4 | Nivel de detalle de los resultados publicados | Por tipo de organismo y región / por organismo individual | Por tipo de organismo y región, para no exponer a nadie sin pruebas suficientes | `PENDIENTE` |
@@ -124,6 +136,31 @@ Supuesto declarado: que el precio de referencia era alcanzable para todos los co
 | D6 | Idioma del código | Inglés / español | Nombres de código en inglés y documentación en español | `PENDIENTE` |
 | D7 | Ítems en UF o dólares | Convertir a pesos con datos del Banco Central / excluirlos | Excluirlos si son menos del 1 % de los ítems de la canasta; verificarlo primero | `PENDIENTE` |
 | D8 | Precio con o sin impuestos | Neto / con IVA | Neto: evita diferencias por régimen tributario | `PENDIENTE` |
+| D9 | Cómo derivar la modalidad de compra | A: `Tipo`, separando los `SE` con `EsTratoDirecto` / B: agrupar los valores de `ProcedenciaOC` | B: la opción A clasifica como licitación unas 5.600 órdenes de enero que no lo son | **Decidido (2026-11-18): B** |
+| D10 | Órdenes en estado `Cancelacion solicitada` | Excluir del análisis de precios / mantener | Excluir: su precio quizás no se pagó; son el 0,09 % de los ítems de enero | **Decidido (2026-11-18): excluir** |
+
+### Detalle de las decisiones tomadas
+
+**D9. Modalidad de compra.** El archivo trae 6 tipos de orden (`Tipo`: `SE`, `AG`, `CM`, `TD`, `CC`,
+`CT`) que no calzan con las modalidades: `SE` mezcla licitaciones, convenio marco, "Orden de Compra
+para informar" y tratos directos, y las compras ágiles figuran también como trato directo. La
+modalidad se deriva de `ProcedenciaOC` (31 valores en enero de 2025), agrupada en:
+
+| Modalidad | Qué incluye |
+|---|---|
+| Licitación | Procedencia de licitación pública o privada |
+| Convenio marco | Procedencia de convenio marco, incluidas las que vienen con `Tipo = SE` |
+| Compra ágil | Compras ágiles (`Tipo = AG`) |
+| Trato directo | Fichas de trato directo, compras por cotización y toda causal de trato directo |
+| Compra coordinada | `Tipo = CC`. Se mantiene aparte porque es comprar en conjunto para ganar escala, una de las hipótesis del proyecto |
+| Otras | Lo que no calce en las anteriores, como "Orden de Compra para informar". Se investiga antes de decidir si entra al análisis |
+
+La tabla que asigna cada uno de los 31 valores a una modalidad se construye en T5, queda versionada
+en el repositorio y tiene un test que falla si aparece un valor sin asignar.
+
+**D10. Estados.** En enero de 2025 no hay órdenes anuladas ni rechazadas. Se excluyen del análisis de
+precios las que están en `Cancelacion solicitada`. Las que están en `Enviada a proveedor` y
+`En proceso` se mantienen, porque su precio es válido.
 
 ## 8. Tareas
 
@@ -134,7 +171,7 @@ Supuesto declarado: que el precio de referencia era alcanzable para todos los co
 | T2 | Entorno: dependencias y estructura de carpetas del código | — |
 | T3 | Ingesta: script de descarga y carga cruda en DuckDB | T1, D1 |
 | T4 | Modelo estrella en SQL | T3 |
-| T5 | Limpieza con tests | T4, D5, D7, D8 |
+| T5 | Limpieza con tests | T4, D5, D7, D8, D9, D10 |
 | T6 | Exploración de productos candidatos | T5 |
 | T7 | Clasificación de la canasta y validación manual | T6, D2 |
 | T8 | Análisis descriptivo | T7 |
@@ -156,6 +193,6 @@ Supuesto declarado: que el precio de referencia era alcanzable para todos los co
 
 - **Precio distinto no significa irregularidad.** Puede reflejar despacho a zonas remotas, urgencia,
   calidad o cantidades mínimas.
-- Sin unidad de medida, parte de la dispersión puede ser error de clasificación. La validación manual lo acota.
+- Sin una unidad de medida confiable, parte de la dispersión puede ser error de clasificación. La validación manual lo acota.
 - El ahorro potencial es un contrafactual que asume que el precio de referencia era alcanzable.
 - La regresión muestra asociaciones, no efectos causales.
