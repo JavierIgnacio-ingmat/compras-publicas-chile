@@ -151,8 +151,8 @@ trato directo, no una licitación. Las columnas están descritas en
 | 4 | `Tipo` = `TD` o `CT`, o `EsTratoDirecto` = `Si` | Trato directo | 21.449 |
 | 5 | `ProcedenciaOC` = `Proveniente de licitación pública` o `Proveniente de licitación privada` | Licitación | 148.929 |
 
-Si un ítem no cumple ninguna regla, la limpieza se detiene con un error, igual que la lista blanca
-de D10. En enero de 2025 todos los ítems cumplen alguna.
+Si un ítem no cumple ninguna regla, la construcción de `dim_modalidad` (T4) se detiene con un error,
+igual que la lista blanca de D10. En enero de 2025 todos los ítems cumplen alguna.
 
 `Tipo` no basta por sí solo porque `SE` mezcla licitaciones, tratos directos y otros casos;
 `EsTratoDirecto` y `ProcedenciaOC` los separan. Resultado para cada caso:
@@ -174,7 +174,7 @@ de D10. En enero de 2025 todos los ítems cumplen alguna.
 
 Si los ítems "Otra" entran o no a la regresión se decide en T9.
 
-El test de T5 debe verificar que ninguna compra ágil (`Tipo` = `AG` o `EsCompraAgil` = `Si`) quede
+El test de T4 debe verificar que ninguna compra ágil (`Tipo` = `AG` o `EsCompraAgil` = `Si`) quede
 en "Otra" por la regla 1. En enero de 2025 no hay ninguna.
 
 ### D10. Estados incluidos
