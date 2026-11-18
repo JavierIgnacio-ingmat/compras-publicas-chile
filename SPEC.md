@@ -19,6 +19,8 @@ cuántas unidades, a qué precio y por qué modalidad. Las modalidades principal
 | Trato directo | Compra a un proveedor sin concurso; es una excepción que debe justificarse |
 | Compra ágil | Procedimiento simplificado para montos pequeños |
 
+En los datos, la modalidad de cada orden se deriva con la regla de la decisión D9 (sección 7).
+
 ChileCompra publica estas órdenes como datos abiertos.
 
 **Por qué importa.** Si dos organismos compran el mismo producto y uno paga bastante más, la
@@ -60,11 +62,14 @@ homogéneos, identificar los factores asociados a precios más altos y estimar e
 
 ## 4. Datos
 
-Fuente, formato esperado e instrucciones de descarga en [`data/README.md`](data/README.md).
+Fuente, formato verificado e instrucciones de descarga en [`data/README.md`](data/README.md).
 
-**Problema central:** los datos no traen un campo de **unidad de medida**. Una orden puede registrar
-"1 resma" y otra "1 caja de 10 resmas" bajo el mismo código de producto. Por eso el análisis se
-restringe a productos donde la unidad puede determinarse con confianza (etapa 4).
+**Problema central:** los datos no dicen **cuánto contiene cada unidad comprada**. Una orden puede
+registrar "1 resma" y otra "1 caja de 10 resmas" bajo el mismo código de producto. Existe la columna
+`UnidadMedida`, pero no resuelve el problema: en enero de 2025 vale `Unidad` en la mitad de los ítems
+y `Unidad no definida` en el 14 %, está vacía en todas las compras por convenio marco (17 %), y cuando
+dice `Caja` no indica cuántas unidades trae. Por eso el análisis se restringe a productos donde la
+unidad puede determinarse con confianza (etapa 4).
 
 ## 5. Metodología
 
@@ -73,16 +78,20 @@ restringe a productos donde la unidad puede determinarse con confianza (etapa 4)
 **Etapa 2. Modelado.** Construir un modelo estrella en SQL:
 - `fact_item_oc`: una fila por ítem comprado (cantidad, precio neto unitario, total, moneda, fecha).
 - Dimensiones: `dim_organismo`, `dim_proveedor`, `dim_producto`, `dim_modalidad`, `dim_fecha`.
+- `dim_modalidad` guarda cada combinación observada de `Tipo`, `EsTratoDirecto` y `ProcedenciaOC`
+  junto con la modalidad derivada según D9, para que la regla se pueda auditar.
 
 **Etapa 3. Limpieza.** Reglas documentadas y con tests:
-- Excluir órdenes en estado anulado, rechazado o equivalente (los estados exactos se ven en los datos).
+- Conservar solo los ítems de órdenes en estado `Aceptada` o `Recepcion Conforme` (D10). La regla es
+  una lista blanca: si aparece un estado que no está en la lista, la limpieza se detiene con un error.
 - Eliminar duplicados.
 - Tratar la moneda según D7.
 - Detectar precios unitarios imposibles (por ejemplo, el total anotado como precio unitario) y
   registrarlos en una tabla aparte en vez de borrarlos.
 
 **Etapa 4. Canasta.** Seleccionar productos candidatos y clasificar sus ítems con el código de
-producto y patrones de texto sobre la descripción. Validar a mano una muestra aleatoria y reportar
+producto, patrones de texto sobre la descripción y la columna `UnidadMedida`. Esta última es una señal
+más, no una fuente de verdad (ver sección 4). Validar a mano una muestra aleatoria y reportar
 la precisión de la clasificación.
 
 **Etapa 5. Análisis.**
@@ -116,7 +125,7 @@ Supuesto declarado: que el precio de referencia era alcanzable para todos los co
 
 | ID | Decisión | Opciones | Recomendación de Claude | Estado |
 |---|---|---|---|---|
-| D1 | Año a analizar | 2025 (último completo) / 2024 / varios años | 2025: un año basta y mantiene el volumen manejable | `PENDIENTE` |
+| D1 | Año a analizar | 2025 (último completo) / 2024 / varios años | 2025: un año basta y mantiene el volumen manejable | `DECIDIDA`: 2025 |
 | D2 | Productos de la canasta | Se eligen después de explorar los datos (tarea T6) | Productos estandarizados y comprados por muchos organismos, como resma de papel carta o medicamentos con dosis definida | `PENDIENTE` |
 | D3 | Precio de referencia para el ahorro | Mediana / P25 / precio de convenio marco | Reportar mediana y P25 como rango | `PENDIENTE` |
 | D4 | Nivel de detalle de los resultados publicados | Por tipo de organismo y región / por organismo individual | Por tipo de organismo y región, para no exponer a nadie sin pruebas suficientes | `PENDIENTE` |
@@ -124,6 +133,47 @@ Supuesto declarado: que el precio de referencia era alcanzable para todos los co
 | D6 | Idioma del código | Inglés / español | Nombres de código en inglés y documentación en español | `PENDIENTE` |
 | D7 | Ítems en UF o dólares | Convertir a pesos con datos del Banco Central / excluirlos | Excluirlos si son menos del 1 % de los ítems de la canasta; verificarlo primero | `PENDIENTE` |
 | D8 | Precio con o sin impuestos | Neto / con IVA | Neto: evita diferencias por régimen tributario | `PENDIENTE` |
+| D9 | Cómo derivar la modalidad de compra | `Tipo` tal cual / 4 modalidades + otra / 4 modalidades con compra coordinada aparte | 4 modalidades + otra | `DECIDIDA`: 4 modalidades + otra (regla abajo) |
+| D10 | Qué estados de la orden entran al análisis | Solo `Aceptada` y `Recepcion Conforme` / excluir solo `Cancelacion solicitada` / todos | Solo `Aceptada` y `Recepcion Conforme` | `DECIDIDA`: solo `Aceptada` y `Recepcion Conforme` |
+
+### D9. Regla de modalidad
+
+Se aplica en orden; cada ítem toma la primera fila que cumple. Las columnas están descritas en
+[`docs/diccionario-oc.md`](docs/diccionario-oc.md). Los conteos son de enero de 2025, antes de filtrar estados.
+
+| Orden | Condición | Modalidad | Ítems |
+|---|---|---|---|
+| 1 | `ProcedenciaOC` es `Orden de Compra para informar` o `NA` | Otra | 5.325 |
+| 2 | `Tipo` = `AG` | Compra ágil | 122.329 |
+| 3 | `Tipo` = `CM`, o `ProcedenciaOC` = `Proveniente de convenio marco` | Convenio marco | 62.164 |
+| 4 | `Tipo` = `TD` o `CT`, o `EsTratoDirecto` = `Si` | Trato directo | 21.449 |
+| 5 | Todo lo demás (`SE` de licitación pública o privada y `CC`) | Licitación | 148.929 |
+
+`Tipo` no basta por sí solo porque `SE` mezcla licitaciones, tratos directos y otros casos;
+`EsTratoDirecto` y `ProcedenciaOC` los separan. Resultado para cada caso:
+
+| Caso | Ítems | Modalidad | Por qué |
+|---|---|---|---|
+| `AG` (compra ágil) | 122.329 | Compra ágil | Es la modalidad misma. Viene marcada con `EsTratoDirecto` = `Si`, por eso la regla 2 va antes que la 4 |
+| `CM` (convenio marco) | 61.787 | Convenio marco | Compra desde el catálogo de convenio marco |
+| `SE` de licitación pública o privada | 146.763 | Licitación | La orden proviene de un concurso (146.024 pública, 739 privada) |
+| `SE` con `EsTratoDirecto` = `Si` | 3.107 | Trato directo | `ProcedenciaOC` trae una causal de trato directo |
+| `SE` con `ProcedenciaOC` = `Proveniente de convenio marco` | 375 | Convenio marco | La procedencia indica que el precio viene de un convenio marco |
+| `SE` con `ProcedenciaOC` = `Orden de Compra para informar` | 5.266 | Otra | La procedencia no indica el procedimiento de compra |
+| `SE` con `EsTratoDirecto` = `NA` | 6 | Otra | También tienen `ProcedenciaOC` = `NA`: no hay dato para saber cómo se compró |
+| `TD` con `EsTratoDirecto` = `Si` | 18.324 | Trato directo | Ficha de trato directo con su causal |
+| `TD` con `EsTratoDirecto` = `No` | 53 | Otra | Todos tienen `ProcedenciaOC` = `Orden de Compra para informar`; se tratan igual que los 5.266 de `SE` |
+| `CT` (cotización) | 18 | Trato directo | Marcadas con `EsTratoDirecto` = `Si`; su causal es una excepción de trato directo (remanente de contrato, con 3 cotizaciones) |
+| `CC` (compra coordinada) de licitación pública o privada | 2.166 | Licitación | La orden proviene de una licitación (2.160 pública, 6 privada) |
+| `CC` con `ProcedenciaOC` = `Proveniente de convenio marco` | 2 | Convenio marco | Misma razón que en `SE`: manda la procedencia |
+
+Si los ítems "Otra" entran o no a la regresión se decide en T9.
+
+### D10. Estados incluidos
+
+Solo `Aceptada` y `Recepcion Conforme`: son órdenes que el proveedor aceptó, con precio confirmado.
+En enero de 2025 quedan fuera 3.249 ítems (0,9 %): `Enviada a proveedor` 2.695,
+`Cancelacion solicitada` 322 y `En proceso` 232. Los estados anulada o rechazada no aparecen en los datos.
 
 ## 8. Tareas
 
