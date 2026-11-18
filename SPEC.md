@@ -191,7 +191,7 @@ En enero de 2025 quedan fuera 3.249 ítems (0,9 %): `Enviada a proveedor` 2.695,
 | T1 | Descargar un mes y verificar el formato real; actualizar `data/README.md` | — |
 | T2 | Entorno: dependencias y estructura de carpetas del código | — |
 | T3 | Ingesta: script de descarga y carga cruda en DuckDB | T1, D1 |
-| T4 | Modelo estrella en SQL | T3 |
+| T4 | Modelo estrella en SQL | T3, D9 |
 | T5 | Limpieza con tests | T4, D5, D7, D8, D9, D10 |
 | T6 | Exploración de productos candidatos | T5 |
 | T7 | Clasificación de la canasta y validación manual | T6, D2 |
