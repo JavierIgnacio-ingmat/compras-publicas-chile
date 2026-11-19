@@ -226,6 +226,8 @@ __marimo__/
 # Datos: no se versionan (pesados y con condiciones de uso propias)
 data/*
 !data/README.md
+# Registro de archivos descargados (URL, fecha, tamaño, SHA-256): sí se versiona
+!data/manifiesto_oc.csv
 # Base de datos DuckDB local
 *.duckdb
 *.duckdb.wal

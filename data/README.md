@@ -26,6 +26,35 @@ Confirmada con la descarga de enero de 2025:
 <https://transparenciachc.blob.core.windows.net/oc-da/2025-1.zip>. Para los demás meses se supone
 el mismo patrón; se confirma al descargarlos.
 
+## Cómo descargar
+
+```powershell
+uv run python -m compras.descarga --anio 2025                # los 12 meses
+uv run python -m compras.descarga --anio 2025 --meses 1 2 3  # solo algunos meses
+```
+
+Los archivos quedan en `raw/oc/` con su nombre original (`AAAA-M.zip`). Los que ya existen no se
+vuelven a descargar ni se modifican. Cada mes se baja primero a un archivo `.part` y solo se
+renombra cuando el zip está completo y es válido. Si un mes falla tres veces seguidas, o no existe
+(HTTP 404), el comando se detiene con un error y no deja archivos a medias.
+
+### Registro de descargas
+
+Cada archivo queda anotado en `manifiesto_oc.csv`, que **sí se versiona** en git:
+
+| Columna | Contenido |
+|---|---|
+| `archivo` | Nombre del zip (`2025-1.zip`) |
+| `url` | URL de descarga |
+| `fecha_descarga` | Fecha y hora UTC de la descarga (`2026-11-18T21:03:00Z`); vacía si el archivo ya existía cuando se creó el registro |
+| `bytes` | Tamaño del zip |
+| `sha256` | Huella del zip, para comprobar que es el mismo archivo |
+
+Los archivos que ya existen se registran con su huella sin volver a descargarlos. Si un archivo
+registrado cambia de contenido, el comando se detiene con un error: los archivos de `raw/` no deben
+modificarse. Lo mismo ocurre si otra persona descarga un mes que ChileCompra regeneró después del
+registro: el error avisa que esos datos ya no son los mismos que se analizaron.
+
 ## Formato verificado
 
 Verificado en la tarea T1 (2026-11-18) con `raw/oc/2025-1.zip` (enero de 2025), leyendo el CSV

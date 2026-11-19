@@ -10,7 +10,13 @@ uv sync          # crea .venv con las versiones exactas de uv.lock
 uv run pytest    # corre los tests
 ```
 
-Los datos se descargan aparte: ver [`data/README.md`](data/README.md).
+Para descargar los datos de 2025 a `data/raw/oc/` (enero de 2025 pesa 85 MB comprimido):
+
+```powershell
+uv run python -m compras.descarga --anio 2025
+```
+
+Detalles de la fuente y del formato en [`data/README.md`](data/README.md).
 
 ## Estructura
 

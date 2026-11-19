@@ -28,7 +28,8 @@ La especificación completa está en [`SPEC.md`](SPEC.md). Léela antes de propo
 
 ## Prohibido
 
-- Subir datos al repositorio (`data/` está excluida en `.gitignore`, salvo `data/README.md`).
+- Subir datos al repositorio (`data/` está excluida en `.gitignore`, salvo `data/README.md` y el
+  registro de descargas `data/manifiesto_oc.csv`).
 - Subir credenciales, tokens o el archivo `.env`.
 - Modificar los archivos de `data/raw/`: son la copia original de la fuente y se tratan como solo lectura.
 - Borrar ramas, hacer `force push` o reescribir historia publicada. Eso lo hace Javier.
